@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -19,8 +18,10 @@ type Okx struct {
 	publicConnection *websocket.Conn
 	rb               *reqtango.RequestBuilder
 	subscriptions    []Argument
-	handlerCtx       context.Context
-	handlerCancel    context.CancelFunc
+	handlers         map[Event]func(response *WSResponse)
+	ctx              context.Context
+	cancel           context.CancelFunc
+	errHandler       func(error)
 }
 
 func NewOkxDefault() (*Okx, error) {
@@ -30,7 +31,8 @@ func NewOkxDefault() (*Okx, error) {
 			Proxy:             http.ProxyFromEnvironment,
 			HandshakeTimeout:  45 * time.Second,
 		},
-		rb: reqtango.NewRequestBuilderSimple(),
+		rb:       reqtango.NewRequestBuilderSimple(),
+		handlers: make(map[Event]func(response *WSResponse), 1),
 	}, nil
 }
 
@@ -40,26 +42,53 @@ func (okx *Okx) Connect() error {
 		return errors.New("fail open public socket: " + err.Error())
 	}
 	okx.publicConnection = publicConn
-	if err := okx.ping(); err != nil {
-		return errors.New("fail send ping: " + err.Error())
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	okx.ctx = ctx
+	okx.cancel = cancel
+	okx.ping()
+	okx.channel()
 	return nil
 }
 
-func (okx *Okx) ping() error {
-	return func() error {
-		if r := recover(); r != nil {
-			return errors.New(fmt.Sprintf("private connection panic: %v", r))
-		}
-		go func() {
-			for {
+func (okx *Okx) ping() {
+	go func() {
+		for {
+			select {
+			case <-okx.ctx.Done():
+				return
+			default:
 				if err := okx.Write(websocket.TextMessage, []byte("ping")); err != nil {
-					panic("fail write ping to connection: " + err.Error())
+					if okx.errHandler != nil {
+						okx.errHandler(errors.New("fail write ping to connection: " + err.Error()))
+					}
 				}
 				time.Sleep(20 * time.Second)
 			}
-		}()
-		return nil
+		}
+	}()
+}
+
+func (okx *Okx) channel() {
+	go func() {
+		for {
+			select {
+			case <-okx.ctx.Done():
+				return
+			default:
+				response, err := okx.ReadResponse()
+				if err != nil {
+					if okx.errHandler != nil {
+						okx.errHandler(errors.New("fail read response in handler: " + err.Error()))
+					}
+				}
+				if response == nil {
+					continue
+				}
+				if value, ok := okx.handlers[response.Event]; ok && value != nil {
+					value(response)
+				}
+			}
+		}
 	}()
 }
 
@@ -74,49 +103,17 @@ func (okx *Okx) Subscribe(tokens ...Argument) error {
 	})
 }
 
-//func (okx *Okx) Unsubscribe(tokens ...Argument) error {
-//	if tokens == nil || len(tokens) == 0 {
-//		return errors.New("tokens is empty")
-//	}
-//	okx.removeSubscriptions(tokens...)
-//	return okx.WriteRequest(WSRequest{
-//		Op:   Unsubscribe,
-//		Args: tokens,
-//	})
-//}
-
-func (okx *Okx) SetHandler(handler func(response *WSResponse)) error {
-	if handler != nil && okx.handlerCancel != nil {
-		okx.handlerCancel()
+func (okx *Okx) AddHandler(event Event, handler func(response *WSResponse)) {
+	if okx.handlers == nil {
+		okx.handlers = make(map[Event]func(response *WSResponse))
 	}
 	okx.mu.Lock()
 	defer okx.mu.Unlock()
-	ctx, cancel := context.WithCancel(context.Background())
-	okx.handlerCtx = ctx
-	okx.handlerCancel = cancel
-	return func() error {
-		if r := recover(); r != nil {
-			return errors.New(fmt.Sprintf("private connection panic: %v", r))
-		}
-		go func() {
-			for {
-				select {
-				case <-okx.handlerCtx.Done():
-					return
-				default:
-					response, err := okx.ReadResponse()
-					if err != nil {
-						panic("fail read response in handler: " + err.Error())
-					}
-					switch response.Event {
-					case Update:
-						handler(response)
-					}
-				}
-			}
-		}()
-		return nil
-	}()
+	okx.handlers[event] = handler
+}
+
+func (okx *Okx) ErrHandler(handler func(err error)) {
+	okx.errHandler = handler
 }
 
 func (okx *Okx) WriteRequest(wsRequest WSRequest) error {
@@ -171,8 +168,8 @@ func (okx *Okx) Close() {
 	if okx.publicConnection != nil {
 		okx.publicConnection.Close()
 	}
-	if okx.handlerCancel != nil {
-		okx.handlerCancel()
+	if okx.cancel != nil {
+		okx.cancel()
 	}
 }
 

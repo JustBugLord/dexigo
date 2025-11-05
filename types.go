@@ -5,13 +5,13 @@ import (
 	"github.com/JustBugLord/dexigo/channels"
 )
 
-type Operation string
+type Event string
 
 const (
-	Subscribe   Operation = "subscribe"
-	Unsubscribe Operation = "unsubscribe"
-	Pong        Operation = "pong"
-	Update      Operation = "update"
+	Subscribe   Event = "subscribe"
+	Unsubscribe Event = "unsubscribe"
+	Pong        Event = "pong"
+	Update      Event = "update"
 )
 
 type Argument struct {
@@ -21,7 +21,7 @@ type Argument struct {
 }
 
 type WSRequest struct {
-	Op   Operation  `json:"op"`
+	Op   Event      `json:"op"`
 	Args []Argument `json:"args"`
 }
 
@@ -29,7 +29,7 @@ type WSResponse struct {
 	Arg    Argument    `json:"arg"`
 	Args   []Argument  `json:"args"`
 	Data   []TokenData `json:"data"`
-	Event  Operation   `json:"event"`
+	Event  Event       `json:"event"`
 	ConnId string      `json:"connId"`
 }
 
@@ -219,4 +219,14 @@ type AllNetworkTokensResponse struct {
 type TokenInfoResponse struct {
 	DexResponse
 	Data *TokenInfo `json:"data"`
+}
+
+type SearchTokenData struct {
+	InputContent string         `json:"inputContent"`
+	SystemList   []NetworkToken `json:"systemList"`
+}
+
+type SearchTokenResponse struct {
+	DexResponse
+	Data *SearchTokenData `json:"data"`
 }
