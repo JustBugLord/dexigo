@@ -17,6 +17,7 @@ type Okx struct {
 	mu               sync.Mutex
 	publicConnection *websocket.Conn
 	rb               *reqtango.RequestBuilder
+	ticker           *time.Timer
 	subscriptions    []Argument
 	handlers         map[Event]func(response *WSResponse)
 	ctx              context.Context
@@ -52,17 +53,18 @@ func (okx *Okx) Connect() error {
 
 func (okx *Okx) ping() {
 	go func() {
+		ticker := time.NewTimer(20 * time.Second)
+		okx.ticker = ticker
 		for {
 			select {
 			case <-okx.ctx.Done():
 				return
-			default:
+			case <-ticker.C:
 				if err := okx.Write(websocket.TextMessage, []byte("ping")); err != nil {
 					if okx.errHandler != nil {
 						okx.errHandler(errors.New("fail write ping to connection: " + err.Error()))
 					}
 				}
-				time.Sleep(20 * time.Second)
 			}
 		}
 	}()
@@ -170,6 +172,9 @@ func (okx *Okx) Close() {
 	}
 	if okx.cancel != nil {
 		okx.cancel()
+	}
+	if okx.ticker != nil {
+		okx.ticker.Stop()
 	}
 }
 
