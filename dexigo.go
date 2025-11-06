@@ -34,6 +34,9 @@ func NewOkxDefault() (*Okx, error) {
 		},
 		rb:       reqtango.NewRequestBuilderSimple(),
 		handlers: make(map[Event]func(response *WSResponse), 1),
+		errHandler: func(err error) {
+			panic(err)
+		},
 	}, nil
 }
 
@@ -115,6 +118,9 @@ func (okx *Okx) AddHandler(event Event, handler func(response *WSResponse)) {
 }
 
 func (okx *Okx) ErrHandler(handler func(err error)) {
+	if handler == nil {
+		return
+	}
 	okx.errHandler = handler
 }
 
