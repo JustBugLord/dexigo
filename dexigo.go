@@ -25,7 +25,7 @@ type Okx struct {
 	errHandler       func(error)
 }
 
-func NewOkxDefault() (*Okx, error) {
+func NewOkxDefault() *Okx {
 	return &Okx{
 		dialer: websocket.Dialer{
 			EnableCompression: true,
@@ -37,7 +37,7 @@ func NewOkxDefault() (*Okx, error) {
 		errHandler: func(err error) {
 			panic(err)
 		},
-	}, nil
+	}
 }
 
 func (okx *Okx) Connect() error {
