@@ -168,7 +168,7 @@ type TokenInfo struct {
 		K string `json:"k"`
 		M int    `json:"m"`
 	} `json:"t"`
-	TagList                     [][]string         `json:"tagList"`
+	TagList                     [][]interface{}    `json:"tagList"`
 	TokenContractAddress        string             `json:"tokenContractAddress"`
 	TokenFee                    string             `json:"tokenFee"`
 	TokenLargeLogoUrl           string             `json:"tokenLargeLogoUrl"`
