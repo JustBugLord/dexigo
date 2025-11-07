@@ -23,6 +23,7 @@ type Okx struct {
 	ctx              context.Context
 	cancel           context.CancelFunc
 	errHandler       func(error)
+	health           bool
 }
 
 func NewOkxDefault() *Okx {
@@ -51,6 +52,7 @@ func (okx *Okx) Connect() error {
 	okx.cancel = cancel
 	okx.ping()
 	okx.channel()
+	okx.health = true
 	return nil
 }
 
@@ -121,7 +123,10 @@ func (okx *Okx) ErrHandler(handler func(err error)) {
 	if handler == nil {
 		return
 	}
-	okx.errHandler = handler
+	okx.errHandler = func(err error) {
+		okx.health = false
+		handler(err)
+	}
 }
 
 func (okx *Okx) WriteRequest(wsRequest WSRequest) error {
@@ -182,6 +187,10 @@ func (okx *Okx) Close() {
 	if okx.ticker != nil {
 		okx.ticker.Stop()
 	}
+}
+
+func (okx *Okx) Health() bool {
+	return okx.health
 }
 
 func (okx *Okx) removeSubscriptions(source ...Argument) {
