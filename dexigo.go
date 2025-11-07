@@ -19,7 +19,7 @@ type Okx struct {
 	rb               *reqtango.RequestBuilder
 	ticker           *time.Timer
 	subscriptions    []Argument
-	handlers         map[Event]func(response *WSResponse)
+	handlers         map[Event]func(response *WSResponse) error
 	ctx              context.Context
 	cancel           context.CancelFunc
 	errHandler       func(error)
@@ -34,7 +34,7 @@ func NewOkxDefault() *Okx {
 			HandshakeTimeout:  45 * time.Second,
 		},
 		rb:       reqtango.NewRequestBuilderSimple(),
-		handlers: make(map[Event]func(response *WSResponse), 1),
+		handlers: make(map[Event]func(response *WSResponse) error, 1),
 		errHandler: func(err error) {
 			panic(err)
 		},
@@ -92,7 +92,9 @@ func (okx *Okx) channel() {
 					continue
 				}
 				if value, ok := okx.handlers[response.Event]; ok && value != nil {
-					value(response)
+					if err := value(response); err != nil {
+						okx.errHandler(err)
+					}
 				}
 			}
 		}
@@ -110,16 +112,16 @@ func (okx *Okx) Subscribe(tokens ...Argument) error {
 	})
 }
 
-func (okx *Okx) AddHandler(event Event, handler func(response *WSResponse)) {
+func (okx *Okx) AddHandler(event Event, handler func(response *WSResponse) error) {
 	if okx.handlers == nil {
-		okx.handlers = make(map[Event]func(response *WSResponse))
+		okx.handlers = make(map[Event]func(response *WSResponse) error)
 	}
 	okx.mu.Lock()
 	defer okx.mu.Unlock()
 	okx.handlers[event] = handler
 }
 
-func (okx *Okx) ErrHandler(handler func(err error)) {
+func (okx *Okx) SetErrHandler(handler func(err error)) {
 	if handler == nil {
 		return
 	}
