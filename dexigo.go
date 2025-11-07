@@ -17,7 +17,7 @@ type Okx struct {
 	mu               sync.Mutex
 	publicConnection *websocket.Conn
 	rb               *reqtango.RequestBuilder
-	ticker           *time.Timer
+	ticker           *time.Ticker
 	subscriptions    []Argument
 	handlers         map[Event]func(response *WSResponse) error
 	ctx              context.Context
@@ -58,7 +58,7 @@ func (okx *Okx) Connect() error {
 
 func (okx *Okx) ping() {
 	go func() {
-		ticker := time.NewTimer(20 * time.Second)
+		ticker := time.NewTicker(20 * time.Second)
 		okx.ticker = ticker
 		for {
 			select {
