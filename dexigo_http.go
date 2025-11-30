@@ -18,7 +18,7 @@ func (okx *Okx) SearchTokenAdvance(token string, chainType, searchType int) (*Se
 		return nil, errors.New("fail to get token info: " + err.Error())
 	}
 	if response.StatusCode != 200 {
-		return nil, errors.New("fail to get token info: " + response.Body)
+		return nil, errors.New("fail to get token info: " + string(response.Body))
 	}
 	var result *SearchTokenResponse
 	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
@@ -33,7 +33,7 @@ func (okx *Okx) TokenInfo(address string, chainId chains.Chain) (*TokenInfoRespo
 		return nil, errors.New("fail to get token info: " + err.Error())
 	}
 	if response.StatusCode != 200 {
-		return nil, errors.New("fail to get token info: " + response.Body)
+		return nil, errors.New("fail to get token info: " + string(response.Body))
 	}
 	var result *TokenInfoResponse
 	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
@@ -48,7 +48,7 @@ func (okx *Okx) AllNetworkTokens() (*AllNetworkTokensResponse, error) {
 		return nil, err
 	}
 	if response.StatusCode != 200 {
-		return nil, errors.New("fail to get all network tokens: " + response.Body)
+		return nil, errors.New("fail to get all network tokens: " + string(response.Body))
 	}
 	var result *AllNetworkTokensResponse
 	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
