@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JustBugLord/reqtango"
+	"github.com/JustBugLord/reqtango/v2"
 	"github.com/gorilla/websocket"
 )
 
