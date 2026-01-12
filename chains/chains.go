@@ -41,6 +41,73 @@ const (
 	Fantom    Chain = 250
 )
 
+func (c *Chain) ToString() string {
+	switch *c {
+	case Ethereum:
+		return "ethereum"
+	case Base:
+		return "base"
+	case Linea:
+		return "linea"
+	case Scroll:
+		return "scroll"
+	case Manta:
+		return "manta"
+	case Sei:
+		return "sei"
+	case Ton:
+		return "ton"
+	case Bsc:
+		return "bsc"
+	case Arbitrum:
+		return "arbitrum"
+	case Cronos:
+		return "cronos"
+	case IoTex:
+		return "iotex"
+	case Tron:
+		return "tron"
+	case Aptos:
+		return "aptos"
+	case Mantle:
+		return "mantle"
+	case ApeChain:
+		return "ape"
+	case Zeta:
+		return "zeta"
+	case Solana:
+		return "solana"
+	case Avalanche:
+		return "avax"
+	case Optimism:
+		return "optimism"
+	case Sonic:
+		return "sonic"
+	case Mode:
+		return "mode"
+	case Merlin:
+		return "merlin"
+	case Conflux:
+		return "conflux"
+	case Metis:
+		return "metis"
+	case Polygon:
+		return "polygon"
+	case ZkSync:
+		return "zksync"
+	case PolygonZk:
+		return "polygonzk"
+	case Sui:
+		return "sui"
+	case X:
+		return "x"
+	case Fantom:
+		return "fantom"
+	default:
+		return fmt.Sprintf("Chain(%d)", *c)
+	}
+}
+
 func (c *Chain) UnmarshalJSON(data []byte) error {
 	cleaned := strings.Trim(string(data), `"`)
 	num, err := strconv.ParseInt(cleaned, 10, 64)

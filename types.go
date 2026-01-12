@@ -1,6 +1,8 @@
 package dexigo
 
 import (
+	"strconv"
+
 	"github.com/JustBugLord/dexigo/chains"
 	"github.com/JustBugLord/dexigo/channels"
 )
@@ -78,6 +80,14 @@ type TokenData struct {
 	Volume1H              string          `json:"volume1H"`
 	Volume4H              string          `json:"volume4H"`
 	Volume5M              string          `json:"volume5M"`
+}
+
+func (td *TokenData) GetChain() chains.Chain {
+	id, err := strconv.Atoi(td.ChainId)
+	if err != nil {
+		return chains.Chain(0)
+	}
+	return chains.Chain(id)
 }
 
 type NetworkToken struct {
