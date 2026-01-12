@@ -41,8 +41,8 @@ const (
 	Fantom    Chain = 250
 )
 
-func (c *Chain) ToString() string {
-	switch *c {
+func StringChain(c Chain) string {
+	switch c {
 	case Ethereum:
 		return "ethereum"
 	case Base:
@@ -104,7 +104,7 @@ func (c *Chain) ToString() string {
 	case Fantom:
 		return "fantom"
 	default:
-		return fmt.Sprintf("Chain(%d)", *c)
+		return fmt.Sprintf("Chain(%d)", c)
 	}
 }
 
