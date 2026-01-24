@@ -18,7 +18,7 @@ type Okx struct {
 	publicConnection *websocket.Conn
 	rb               *reqtango.RequestBuilder
 	ticker           *time.Ticker
-	subscriptions    []Argument
+	subscriptions    []DexToken
 	handlers         map[Event]func(response *WSResponse) error
 	ctx              context.Context
 	cancel           context.CancelFunc
@@ -44,7 +44,7 @@ func NewOkxDefault() *Okx {
 func (okx *Okx) Connect() error {
 	publicConn, _, err := okx.dialer.Dial("wss://wsdexpri.okx.com/ws/v5/ipublic", nil)
 	if err != nil {
-		return errors.New("fail open public socket: " + err.Error())
+		return errors.New("fail open socket: " + err.Error())
 	}
 	okx.publicConnection = publicConn
 	ctx, cancel := context.WithCancel(context.Background())
@@ -101,7 +101,7 @@ func (okx *Okx) channel() {
 	}()
 }
 
-func (okx *Okx) Subscribe(tokens ...Argument) error {
+func (okx *Okx) Subscribe(tokens ...DexToken) error {
 	if tokens == nil || len(tokens) == 0 {
 		return errors.New("tokens is empty")
 	}
@@ -195,8 +195,8 @@ func (okx *Okx) Health() bool {
 	return okx.health
 }
 
-func (okx *Okx) removeSubscriptions(source ...Argument) {
-	result := make([]Argument, 0, len(source))
+func (okx *Okx) removeSubscriptions(source ...DexToken) {
+	result := make([]DexToken, 0, len(source))
 	for _, item := range okx.subscriptions {
 		contains := false
 		for _, arg := range source {

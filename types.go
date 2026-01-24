@@ -1,7 +1,10 @@
 package dexigo
 
 import (
+	"encoding/json"
+	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/JustBugLord/dexigo/chains"
 	"github.com/JustBugLord/dexigo/channels"
@@ -16,23 +19,55 @@ const (
 	Update      Event = "update"
 )
 
-type Argument struct {
+type DexToken struct {
 	ChainId      chains.Chain     `json:"chainId"`
 	Channel      channels.Channel `json:"channel"`
 	TokenAddress string           `json:"tokenAddress"`
 }
 
 type WSRequest struct {
-	Op   Event      `json:"op"`
-	Args []Argument `json:"args"`
+	Op   Event `json:"op"`
+	Args any   `json:"args"`
 }
 
 type WSResponse struct {
-	Arg    Argument    `json:"arg"`
-	Args   []Argument  `json:"args"`
-	Data   []TokenData `json:"data"`
-	Event  Event       `json:"event"`
-	ConnId string      `json:"connId"`
+	Data   json.RawMessage `json:"data"`
+	Arg    DexToken        `json:"arg"`
+	Args   []DexToken      `json:"args"`
+	Event  Event           `json:"event"`
+	ConnId string          `json:"connId"`
+	Msg    string          `json:"msg"`
+	Code   string          `json:"code"`
+}
+
+func (r *WSResponse) GetDataAsTokenData() ([]TokenData, error) {
+	if !strings.Contains(string(r.Arg.Channel), "dex-market") {
+		return nil, errors.New("is not dex-market data")
+	}
+	var source []TokenData
+	if err := json.Unmarshal(r.Data, &source); err != nil {
+		return nil, errors.New("fail to unmarshal candlesticks: " + err.Error())
+	}
+	return source, nil
+}
+
+func (r *WSResponse) GetDataAsCandlesticks() ([]CandlesTick, error) {
+	if !strings.Contains(string(r.Arg.Channel), "candle") {
+		return nil, errors.New("is not candlestick")
+	}
+	var source [][]string
+	if err := json.Unmarshal(r.Data, &source); err != nil {
+		return nil, errors.New("fail to unmarshal candlesticks: " + err.Error())
+	}
+	list := make([]CandlesTick, 0, len(source))
+	for _, v := range source {
+		candlestick, err := ParseCandlestick(v)
+		if err != nil {
+			return list, errors.New("fail to parse candlestick: " + err.Error())
+		}
+		list = append(list, candlestick)
+	}
+	return list, nil
 }
 
 type TokenData struct {
